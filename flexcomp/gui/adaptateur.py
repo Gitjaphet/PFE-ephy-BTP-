@@ -59,6 +59,7 @@ def calculer_poteau(donnees: dict[str, Any]) -> dict[str, Any]:
         "modele": poteau,
         "resultat": resultat,
         "sollicitation_els": sollicitation_els,
+        "hauteur_poutre": donnees.get("hauteur_poutre") or 35.0,
     }
 
 

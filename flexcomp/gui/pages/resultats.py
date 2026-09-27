@@ -308,6 +308,11 @@ class PageResultats(QWidget):
             self._bouton_els.setObjectName("Principal")
             self._bouton_els.clicked.connect(self._verifier_els)
             disposition.addWidget(self._bouton_els, alignment=Qt.AlignmentFlag.AlignRight)
+        self._bouton_planche = None
+        if self.identifiant == "poteau":
+            self._bouton_planche = QPushButton("Exporter la planche de ferraillage")
+            self._bouton_planche.clicked.connect(self._exporter_planche)
+            disposition.addWidget(self._bouton_planche, alignment=Qt.AlignmentFlag.AlignRight)
         self._maj_choix()
         return cadre
 
@@ -380,8 +385,33 @@ class PageResultats(QWidget):
         self._bilan_choix.setText(" ".join(messages))
         if self._bouton_els is not None:
             self._bouton_els.setEnabled(valide and els_possible)
+        if getattr(self, "_bouton_planche", None) is not None:
+            self._bouton_planche.setEnabled(valide)
         self._vider_els()
         self._synchroniser_coupe()
+
+    def _exporter_planche(self) -> None:
+        """Planche de ferraillage A4 avec les barres saisies dans « Choix des armatures »."""
+        from PyQt6.QtWidgets import QFileDialog, QMessageBox
+        from flexcomp.gui.dessins.planche_poteau import exporter_planche_poteau
+        chemin, _ = QFileDialog.getSaveFileName(
+            self, "Exporter la planche de ferraillage",
+            "planche_ferraillage_poteau.pdf", "Fichier PDF (*.pdf)",
+        )
+        if not chemin:
+            return
+        if not chemin.lower().endswith(".pdf"):
+            chemin += ".pdf"
+        try:
+            exporter_planche_poteau(
+                chemin, self.sortie["modele"], self._choix_lus(),
+                hauteur_poutre_cm=self.sortie.get("hauteur_poutre", 35.0),
+            )
+        except OSError as erreur:
+            QMessageBox.warning(self, "Export impossible",
+                                f"Le fichier n'a pas pu être écrit :\n\n{erreur}")
+            return
+        QMessageBox.information(self, "Export réussi", f"Planche enregistrée :\n{chemin}")
 
     def _vider_els(self) -> None:
         while self._zone_els.count():

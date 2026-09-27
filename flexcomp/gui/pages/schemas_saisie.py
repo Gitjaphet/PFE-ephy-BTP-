@@ -70,6 +70,7 @@ SCHEMAS: dict[str, SchemaFormulaire] = {
                 titre="Élancement",
                 champs=(
                     Champ("longueur", "Hauteur libre l", "m", "3.5", "Hauteur libre du poteau entre appuis"),
+                    Champ("hauteur_poutre", "Hauteur de poutre en tête", "cm", "35", "Pour la planche de ferraillage"),
                 ),
                 colonnes=2,
             ),
