@@ -1,0 +1,32 @@
+# Environnement virtuel
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+build/
+dist/
+.eggs/
+
+# Tests / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Outils / IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+
+# Fichiers générés (à adapter si tu veux versionner les PDF de résultat)
+*.pdf
+!examples/**/*.pdf

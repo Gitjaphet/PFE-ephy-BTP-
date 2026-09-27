@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flexcomp"
+version = "0.2.0"
+description = "Calcul des éléments en béton armé travaillant en flexion composée selon l'Eurocode 2"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "JEPHY Marinho" }]
+dependencies = []
+
+[project.optional-dependencies]
+gui = ["PyQt6>=6.5"]
+dev = ["pytest>=7.0", "rich>=13.0", "PyQt6>=6.5"]
+
+[project.scripts]
+flexcomp = "flexcomp.gui.app:lancer"
+
+[tool.setuptools.packages.find]
+include = ["flexcomp*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
