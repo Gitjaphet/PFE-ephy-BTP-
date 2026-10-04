@@ -233,12 +233,103 @@ def mur() -> None:
 
 
 # ----------------------------------------------------------------------
+# Poteau circulaire
+# ----------------------------------------------------------------------
+def poteau_circulaire() -> None:
+    from dataclasses import replace as remplacer
+    from flexcomp.core.materials import Acier, Beton
+    from flexcomp.elements.poteau_circulaire import PoteauCirculaire
+    from flexcomp.gui.adaptateur import _CONDITIONS_APPUI
+
+    titre("POTEAU CIRCULAIRE — FLEXION COMPOSÉE (EUROCODE 2)")
+    etape("1. Données (Entrée = valeur par défaut)")
+    D = lire("Diamètre D (cm)", 45)
+    l = lire("Hauteur libre l (m)", 3.5)
+    c = lire("Enrobage c (cm)", 3)
+    phi = lire("Diamètre Φ pour d' (mm)", 20)
+    fck, fyk = lire("Béton fck (MPa)", 25), lire("Acier fyk (MPa)", 500)
+    N, M = lire("ELU : effort normal NEd (kN)", 800), lire("ELU : moment MEd (kN.m)", 120)
+    Ns, Ms = lire("ELS : effort normal Nser (kN)", 580), lire("ELS : moment Mser (kN.m)", 85)
+    nb = 0
+    while nb < 6:
+        nb = int(lire("Nombre de barres réparties (>= 6)", 8))
+        if nb < 6:
+            print("   -> au moins 6 barres pour une section circulaire (EC2 §9.5.2(4)).")
+    appui = lire_option("Conditions aux appuis", APPUIS)
+    k1 = k2 = 0.1
+    if appui >= 4:
+        k1, k2 = lire("Souplesse en pied k1", 0.1), lire("Souplesse en tête k2", 0.1)
+
+    p = PoteauCirculaire(diametre=D / 100, longueur_libre=l, condition_appui=_CONDITIONS_APPUI[appui],
+                         beton=Beton(fck=fck), acier=Acier(fyk=fyk), enrobage_nominal=c / 100,
+                         diametre_barre=phi / 1000, nombre_barres=nb, k1=k1, k2=k2)
+    s = Sollicitation(N=N, M=M)
+
+    etape("2. Caractéristiques des matériaux et de la section")
+    print(f"   fcd = fck/1,5  = {p.beton.fcd:.2f} MPa      fyd = fyk/1,15 = {p.fyd:.2f} MPa")
+    print(f"   d' = c + Φ/2 = {p.d_prime/10:.1f} cm      rs = D/2 − d' = {p.rs/10:.1f} cm (cercle des armatures)")
+    print(f"   Ac = π.D²/4 = {p.Ac:.0f} mm²      i = D/4 = {p.rayon_giration*100:.2f} cm")
+    print(f"   d (courbure) = D/2 + rs/√2 = {p.d_courbure/10:.2f} cm")
+    print(f"   l0 = {p.l0:.3f} m  ({APPUIS[appui]})")
+
+    r = p.dimensionner(s)
+    e = r.effets_2nd_ordre
+    if e is not None:
+        etape("3. Élancement et effets du second ordre")
+        print(f"   λ = l0/i = {e.lambda_calcule:.2f}      λlim = 20.A.B.C/√n = {e.lambda_limite:.2f}")
+        print("   -> second ordre " + ("PRIS EN COMPTE (λ > λlim)" if e.second_ordre_necessaire
+                                         else "négligeable (λ <= λlim)"))
+        print(f"   e1 = {e.excentricite_1er_ordre*100:.2f} cm   ei = {e.excentricite_imperfection*100:.3f} cm"
+              f"   e2 = {e.excentricite_2nd_ordre*100:.3f} cm")
+        print(f"   etot = {e.excentricite_totale*100:.2f} cm   (e0,min = {e.excentricite_min*100:.2f} cm)")
+        print(f"   M*Ed = NEd.etot = {e.moment_calcul:.2f} kN.m")
+    else:
+        etape("3. Traction : pas d'effet du second ordre")
+        print(f"   e0 = |MEd/NEd| = {abs(M / N)*100:.2f} cm")
+
+    etape("4. Identification du cas de section (équilibre de la section)")
+    print(f"   Axe neutre à l'ELU : x = {r.x/10:.2f} cm  (D = {D:.0f} cm)")
+    print("   " + CAS[r.cas].split(" : ")[1].capitalize())
+    if N > 0:
+        print(f"   Béton seul : M_Rd,c = {r.M_Rd_beton:.2f} kN.m")
+
+    etape("5. Armatures à l'ELU (section totale répartie sur les barres)")
+    a = r.armatures
+    print(f"   As = {a.As1:.1f} mm²      As,min = {a.As_min:.1f} mm²      As,max = {a.As_max:.0f} mm²")
+    for note in r.notes:
+        print(f"   · {note}")
+
+    etape("6. Choix des armatures")
+    while True:
+        n_ch, phi_ch = lire_armature("As (total)", a.As1, "mm²")
+        if n_ch >= 6:
+            break
+        print("   -> au moins 6 barres pour une section circulaire.")
+    As_ch = section_barres(n_ch, phi_ch)
+    p_ch = remplacer(p, nombre_barres=n_ch)
+    if As_ch > a.As_max:
+        print(f"   ATTENTION : {As_ch:.0f} mm² > As,max = {a.As_max:.0f} mm².")
+
+    etape("7. Vérification de la résistance avec les barres choisies")
+    x, MRd, ok = p_ch.verifier_resistance(s, As_ch, r)
+    M_star = e.moment_calcul if e is not None else abs(M)
+    print(f"   {format_choix(n_ch, phi_ch)} = {As_ch:.0f} mm² : x = {x/10:.2f} cm pour N_Rd = N_Ed")
+    print(f"   M_Rd = {MRd:.2f} kN.m >= M*Ed = {M_star:.2f} kN.m  -> {verdict(ok)}")
+
+    etape("8. Vérification à l'ELS (barres choisies)")
+    v = p_ch.verifier_els(Sollicitation(N=Ns, M=Ms), As_ch)
+    print("   " + ("Section homogène (N_ser > 0)" if Ns > 0 else "Section fissurée (N_ser < 0, béton tendu négligé)"))
+    print(f"   σc = {v.sigma_beton:.2f} MPa <= {v.sigma_beton_limite:.2f} MPa  -> {verdict(v.beton_verifie)}")
+    print(f"   σs = {v.sigma_acier:.2f} MPa <= {v.sigma_acier_limite:.2f} MPa  -> {verdict(v.acier_verifie)}")
+
+
+# ----------------------------------------------------------------------
 def main() -> None:
-    menus = {"1": poteau, "2": voute, "3": mur}
+    menus = {"1": poteau, "2": voute, "3": mur, "4": poteau_circulaire}
     while True:
         titre("flexcomp — Calcul des éléments en flexion composée (EC2)")
         print("   1. Poteau rectangulaire\n   2. Voûte à trois articulations\n"
-              "   3. Mur porteur (voile)\n   0. Quitter")
+              "   3. Mur porteur (voile)\n   4. Poteau circulaire\n   0. Quitter")
         choix = input("   Votre choix : ").strip()
         if choix == "0":
             print("Au revoir.")
