@@ -31,6 +31,7 @@ from flexcomp.core.barres import (
 )
 from flexcomp.results import CasSection
 from flexcomp.gui.dessins.voute import CoupeSectionVoute
+from flexcomp.gui.dessins.poteau_circulaire import CoupePoteauCirculaire
 from flexcomp.gui.dessins import (
     CoupeHorizontaleMur,
     CoupeTransversalePoteau,
@@ -107,6 +108,7 @@ class PageResultats(QWidget):
 
         constructeurs = {
             "poteau": self._corps_poteau,
+            "poteau_circ": self._corps_poteau_circ,
             "voute": self._corps_voute,
             "mur": self._corps_mur,
         }
@@ -140,6 +142,8 @@ class PageResultats(QWidget):
                 ("Coupe transversale", CoupeTransversalePoteau(modele, resultat)),
                 ("Élévation", ElevationPoteau(modele, resultat)),
             ]
+        elif self.identifiant == "poteau_circ":
+            figures = [("Coupe transversale", CoupePoteauCirculaire(modele, resultat))]
         elif self.identifiant == "voute":
             figures = [
                 ("Géométrie", GeometrieVoute(modele, resultat)),
@@ -319,6 +323,12 @@ class PageResultats(QWidget):
     def _proposition(self, requis: float) -> tuple[int, int]:
         """Proposition initiale. Poteau : 4 barres du plus petit Φ suffisant.
         Voûte / mur : plus petit Φ (>= 8 mm) demandant au plus 6 barres."""
+        if self.identifiant == "poteau_circ":
+            nb = self.sortie["modele"].nombre_barres
+            for d in DIAMETRES_HA:
+                if d >= 8 and section_barres(nb, d) >= requis:
+                    return nb, d
+            return nb, DIAMETRES_HA[-1]
         if self.identifiant == "poteau":
             for d in DIAMETRES_HA:
                 if d >= 8 and section_barres(4, d) >= requis:
@@ -369,6 +379,10 @@ class PageResultats(QWidget):
             )
             resume.setStyleSheet(f"color: {couleur}; font-weight: 600;")
 
+        if self.identifiant == "poteau_circ" and choix.get("As1") and choix["As1"][0] < 6:
+            valide = False
+            self._choix["As1"][1].setText("au moins 6 barres (section circulaire)")
+            self._choix["As1"][1].setStyleSheet(f"color: {PALETTE.danger}; font-weight: 600;")
         total = sum(sections.values())
         messages = [f"Section totale choisie : {_nombre(total, 0, 'mm²')}."] if valide or sections else []
         if sections and total < armatures.As_min - 0.5:
@@ -424,7 +438,16 @@ class PageResultats(QWidget):
     def _verifier_els(self) -> None:
         sections = self._sections_choisies()
         choisies = replace(self._armatures_elu, **sections)
-        if self.identifiant == "voute":
+        if self.identifiant == "poteau_circ":
+            n_ch = self._choix_lus()["As1"][0]
+            modele = replace(self.sortie["modele"], nombre_barres=n_ch)
+            sollicitation = self.sortie["sollicitation_els"]
+            verification = modele.verifier_els(sollicitation, sections["As1"])
+            res = self.sortie["resultat"]
+            _x, M_Rd, ok = modele.verifier_resistance(res.sollicitation_elu, sections["As1"], res)
+            M_et = res.effets_2nd_ordre.moment_calcul if res.effets_2nd_ordre else abs(res.sollicitation_elu.M)
+            self._resistance_circ = (M_Rd, M_et, ok)
+        elif self.identifiant == "voute":
             sollicitation = None
             verification = self.sortie["modele"].verifier_els(self.sortie["resultat"], choisies)
         else:
@@ -436,7 +459,15 @@ class PageResultats(QWidget):
 
         cadre, disposition = carte()
         disposition.addWidget(titre_section("Vérification à l'ELS"))
-        if sollicitation is not None and sollicitation.N < 0:
+        if self.identifiant == "poteau_circ":
+            M_Rd, M_et, ok = self._resistance_circ
+            disposition.addWidget(LigneResultat(
+                "Résistance ELU M_Rd / M*_Ed",
+                f"{_nombre(M_Rd, 2)} / {_nombre(M_et, 2, 'kN·m')}",
+                BadgeVerdict("vérifié" if ok else "non vérifié", "succes" if ok else "danger"),
+                en_evidence=True,
+            ))
+        if sollicitation is not None and sollicitation.N < 0 and self.identifiant == "poteau":
             disposition.addWidget(
                 LigneResultat("Contrainte béton σc", "section entièrement tendue")
             )
@@ -476,6 +507,61 @@ class PageResultats(QWidget):
     # ------------------------------------------------------------------
     # Voûte
     # ------------------------------------------------------------------
+    def _corps_poteau_circ(self) -> None:
+        resultat = self.sortie["resultat"]
+        modele = self.sortie["modele"]
+        effets = resultat.effets_2nd_ordre
+        s = resultat.sollicitation_elu
+
+        cadre, disposition = carte()
+        disposition.addWidget(titre_section("Excentricités et second ordre"))
+        if effets is not None:
+            disposition.addWidget(LigneResultat("Excentricité 1er ordre e₁", _nombre(effets.excentricite_1er_ordre * 100, 2, "cm")))
+            disposition.addWidget(LigneResultat("Imperfections eᵢ", _nombre(effets.excentricite_imperfection * 100, 3, "cm")))
+            disposition.addWidget(LigneResultat("Second ordre e₂", _nombre(effets.excentricite_2nd_ordre * 100, 3, "cm")))
+            disposition.addWidget(LigneResultat("Excentricité totale e_tot", _nombre(effets.excentricite_totale * 100, 2, "cm"), en_evidence=True))
+            disposition.addWidget(LigneResultat(
+                "Élancement λ / λ_lim",
+                f"{_nombre(effets.lambda_calcule, 2)} / {_nombre(effets.lambda_limite, 2)}",
+                BadgeVerdict("2nd ordre pris en compte" if effets.second_ordre_necessaire else "2nd ordre négligeable",
+                             "alerte" if effets.second_ordre_necessaire else "succes"),
+            ))
+            disposition.addWidget(LigneResultat("Moment de calcul M*_Ed", _nombre(effets.moment_calcul, 2, "kN·m"), en_evidence=True))
+        else:
+            disposition.addWidget(LigneResultat("Excentricité e₀ (traction)", _nombre(abs(s.M / s.N) * 100, 2, "cm"), en_evidence=True))
+            note = QLabel("Effort de traction : pas d'effet du second ordre.")
+            note.setObjectName("Legende")
+            disposition.addWidget(note)
+        self._corps.addWidget(cadre)
+
+        libelles = {
+            CasSection.PARTIELLEMENT_COMPRIMEE: "Section partiellement comprimée",
+            CasSection.ENTIEREMENT_TENDUE: "Section entièrement tendue",
+            CasSection.ENTIEREMENT_COMPRIMEE: "Section entièrement comprimée",
+        }
+        self._corps.addWidget(self._bandeau_cas("Équilibre", libelles[resultat.cas]))
+
+        cadre_a, disposition_a = carte()
+        disposition_a.addWidget(titre_section("Armatures à l'ELU"))
+        a = resultat.armatures
+        disposition_a.addWidget(LigneResultat("Axe neutre x", _nombre(resultat.x / 10, 2, "cm")))
+        if s.N > 0:
+            disposition_a.addWidget(LigneResultat("M_Rd du béton seul", _nombre(resultat.M_Rd_beton, 2, "kN·m")))
+        disposition_a.addWidget(LigneResultat("Section totale As", _nombre(a.As1, 1, "mm²"), en_evidence=True))
+        disposition_a.addWidget(LigneResultat("As,min réglementaire", _nombre(a.As_min, 1, "mm²")))
+        disposition_a.addWidget(LigneResultat("As,max réglementaire", _nombre(a.As_max, 0, "mm²")))
+        disposition_a.addWidget(LigneResultat("Barres réparties (calcul)", str(modele.nombre_barres)))
+        for texte in (a.commentaire, *resultat.notes):
+            note = QLabel(texte)
+            note.setObjectName("Legende")
+            note.setWordWrap(True)
+            disposition_a.addWidget(note)
+        self._corps.addWidget(cadre_a)
+
+        self._zone_els = QVBoxLayout()
+        self._corps.addWidget(self._carte_choix_armatures(a, nappes=("As1",)))
+        self._corps.addLayout(self._zone_els)
+
     def _corps_voute(self) -> None:
         resultat = self.sortie["resultat"]
         section = resultat.section_critique

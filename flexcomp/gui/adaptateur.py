@@ -109,3 +109,27 @@ CALCULATEURS = {
 def calculer(identifiant_element: str, donnees: dict[str, Any]) -> dict[str, Any]:
     """Point d'entrée unique appelé par l'interface."""
     return CALCULATEURS[identifiant_element](donnees)
+
+
+def calculer_poteau_circ(donnees: dict[str, Any]) -> dict[str, Any]:
+    from flexcomp.elements.poteau_circulaire import PoteauCirculaire
+    poteau = PoteauCirculaire(
+        diametre=donnees["D"] / 100.0,
+        longueur_libre=donnees["longueur"],
+        condition_appui=_CONDITIONS_APPUI[donnees.get("condition_appui", 0)],
+        beton=Beton(fck=donnees["fck"]),
+        acier=Acier(fyk=donnees["fyk"]),
+        enrobage_nominal=donnees["enrobage"] / 100.0,
+        diametre_barre=donnees["diametre"] / 1000.0,
+        nombre_barres=int(donnees["nb_barres"]),
+        k1=donnees.get("k1") or 0.1,
+        k2=donnees.get("k2") or 0.1,
+    )
+    resultat = poteau.dimensionner(Sollicitation(N=donnees["N_elu"], M=donnees["M_elu"]))
+    sollicitation_els = None
+    if donnees.get("N_els") is not None and donnees.get("M_els") is not None:
+        sollicitation_els = Sollicitation(N=donnees["N_els"], M=donnees["M_els"])
+    return {"modele": poteau, "resultat": resultat, "sollicitation_els": sollicitation_els}
+
+
+CALCULATEURS["poteau_circ"] = calculer_poteau_circ

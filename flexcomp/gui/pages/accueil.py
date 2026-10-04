@@ -27,6 +27,12 @@ ELEMENTS = [
         "pictogramme": visuels.pictogramme_poteau,
     },
     {
+        "id": "poteau_circ",
+        "titre": "Poteau circulaire",
+        "description": "Section circulaire, armatures réparties, effets du second ordre",
+        "pictogramme": visuels.pictogramme_poteau_circ,
+    },
+    {
         "id": "voute",
         "titre": "Voûte à trois articulations",
         "description": "Arc surbaissé, poussée de Mesnager, section critique",

@@ -184,3 +184,49 @@ SCHEMAS: dict[str, SchemaFormulaire] = {
         },
     ),
 }
+
+
+SCHEMAS["poteau_circ"] = SchemaFormulaire(
+    titre="Poteau circulaire",
+    description="Section circulaire, armatures réparties sur le pourtour, effort normal excentré",
+    groupes=(
+        GroupeChamps(
+            titre="Géométrie de la section",
+            champs=(
+                Champ("D", "Diamètre D", "cm", "45", "Diamètre de la section"),
+                Champ("enrobage", "Enrobage c", "cm", "3", "Enrobage nominal"),
+                Champ("diametre", "Diamètre Φ", "mm", "20", "Diamètre de calcul pour d'"),
+                Champ("nb_barres", "Nombre de barres", "", "8", "Barres réparties sur le pourtour",
+                      lambda v: v >= 6 and float(v).is_integer(), "Nombre entier, au moins 6 barres"),
+            ),
+        ),
+        GroupeChamps(
+            titre="Élancement",
+            champs=(Champ("longueur", "Hauteur libre l", "m", "3.5", "Hauteur libre du poteau entre appuis"),),
+        ),
+        GroupeChamps(
+            titre="Matériaux",
+            champs=(
+                Champ("fck", "Béton fck", "MPa", "25", "Résistance caractéristique à 28 jours"),
+                Champ("fyk", "Acier fyk", "MPa", "500", "Limite d'élasticité caractéristique"),
+            ),
+        ),
+        GroupeChamps(
+            titre="Sollicitations ELU",
+            champs=(
+                Champ("N_elu", "Effort normal N", "kN", "800", "Positif en compression, négatif en traction",
+                      _reel, "Valeur numérique attendue"),
+                Champ("M_elu", "Moment M", "kN·m", "120", "Moment par rapport au centre de la section",
+                      _reel, "Valeur numérique attendue"),
+            ),
+        ),
+        GroupeChamps(
+            titre="Sollicitations ELS (facultatif)",
+            champs=(
+                Champ("N_els", "Effort normal N", "kN", "580", "Laisser vide pour ignorer l'ELS", _reel, ""),
+                Champ("M_els", "Moment M", "kN·m", "85", "Laisser vide pour ignorer l'ELS", _reel, ""),
+            ),
+        ),
+    ),
+    options=dict(SCHEMAS["poteau"].options),
+)

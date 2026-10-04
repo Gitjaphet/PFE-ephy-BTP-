@@ -109,3 +109,21 @@ def pictogramme_mur(largeur: int = 132, hauteur: int = 96) -> QPixmap:
       <line x1="46" y1="68" x2="86" y2="68" stroke="{t}" stroke-width="0.9" stroke-dasharray="3 3"/>
     </svg>"""
     return _svg_vers_pixmap(svg, largeur, hauteur)
+
+
+def pictogramme_poteau_circ(largeur: int = 132, hauteur: int = 96) -> QPixmap:
+    """Coupe schématique d'un poteau circulaire : 8 barres réparties, effort N."""
+    import math
+    t, n = PALETTE.texte_secondaire, PALETTE.effort_normal
+    barres = "".join(
+        f'<circle cx="{66 + 22 * math.cos(2 * math.pi * k / 8):.1f}" '
+        f'cy="{54 + 22 * math.sin(2 * math.pi * k / 8):.1f}" r="3" fill="{t}"/>' for k in range(8)
+    )
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 96">
+      <circle cx="66" cy="54" r="32" fill="none" stroke="{t}" stroke-width="2"/>
+      <circle cx="66" cy="54" r="26" fill="none" stroke="{t}" stroke-width="1.2"/>
+      {barres}
+      <line x1="66" y1="2" x2="66" y2="14" stroke="{n}" stroke-width="2.4"/>
+      <path d="M62 11 L66 17 L70 11 Z" fill="{n}"/>
+    </svg>"""
+    return _svg_vers_pixmap(svg, largeur, hauteur)
