@@ -240,6 +240,7 @@ def poteau_circulaire() -> None:
     from flexcomp.core.materials import Acier, Beton
     from flexcomp.elements.poteau_circulaire import PoteauCirculaire
     from flexcomp.gui.adaptateur import _CONDITIONS_APPUI
+    from flexcomp.results.dataclasses import CasSection
 
     titre("POTEAU CIRCULAIRE — FLEXION COMPOSÉE (EUROCODE 2)")
     etape("1. Données (Entrée = valeur par défaut)")
@@ -287,10 +288,16 @@ def poteau_circulaire() -> None:
         etape("3. Traction : pas d'effet du second ordre")
         print(f"   e0 = |MEd/NEd| = {abs(M / N)*100:.2f} cm")
 
-    etape("4. Identification du cas de section (équilibre de la section)")
+    etape("4. Identification du cas de section (position de l'axe neutre)")
+    if N < 0:
+        print(f"   e0 = |MEd/NEd| = {abs(M / N)*100:.2f} cm   e_lim = {p.e_lim_traction/10:.2f} cm"
+              "  (aciers seuls, pivot A : e0 <= e_lim -> entièrement tendue)")
     print(f"   Axe neutre à l'ELU : x = {r.x/10:.2f} cm  (D = {D:.0f} cm)")
-    print("   " + CAS[r.cas].split(" : ")[1].capitalize())
-    if N > 0:
+    print("   Critère : x <= 0 -> cas 2   |   0 < x < D -> cas 1   |   x >= D -> cas 3")
+    print("   -> " + CAS[r.cas])
+    if N > 0 and N * 1e3 > p.Ac * p.beton.fcd:
+        print(f"   NEd = {N:.0f} kN > Ac.fcd = {p.Ac * p.beton.fcd / 1e3:.0f} kN : le béton seul ne suffit pas")
+    elif N > 0:
         print(f"   Béton seul : M_Rd,c = {r.M_Rd_beton:.2f} kN.m")
 
     etape("5. Armatures à l'ELU (section totale répartie sur les barres)")
@@ -315,10 +322,17 @@ def poteau_circulaire() -> None:
     M_star = e.moment_calcul if e is not None else abs(M)
     print(f"   {format_choix(n_ch, phi_ch)} = {As_ch:.0f} mm² : x = {x/10:.2f} cm pour N_Rd = N_Ed")
     print(f"   M_Rd = {MRd:.2f} kN.m >= M*Ed = {M_star:.2f} kN.m  -> {verdict(ok)}")
+    if r.cas is CasSection.ENTIEREMENT_TENDUE and x > 0:
+        print("   (section réelle > section requise : une petite zone comprimée apparaît, sécurité)")
 
     etape("8. Vérification à l'ELS (barres choisies)")
     v = p_ch.verifier_els(Sollicitation(N=Ns, M=Ms), As_ch)
-    print("   " + ("Section homogène (N_ser > 0)" if Ns > 0 else "Section fissurée (N_ser < 0, béton tendu négligé)"))
+    if Ns > 0:
+        print("   Section homogène (N_ser > 0)")
+    elif v.sigma_beton == 0:
+        print("   Section entièrement tendue : aciers seuls, σs = N/As + M.y/Is")
+    else:
+        print("   Section fissurée (N_ser < 0, béton tendu négligé)")
     print(f"   σc = {v.sigma_beton:.2f} MPa <= {v.sigma_beton_limite:.2f} MPa  -> {verdict(v.beton_verifie)}")
     print(f"   σs = {v.sigma_acier:.2f} MPa <= {v.sigma_acier_limite:.2f} MPa  -> {verdict(v.acier_verifie)}")
 

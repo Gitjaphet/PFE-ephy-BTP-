@@ -8,7 +8,9 @@ Différence de méthode : les barres étant réparties sur le pourtour, la
 méthode du moment réduit (deux nappes) ne s'applique pas. Les armatures sont
 obtenues par l'équilibre direct de la section (diagramme d'interaction) :
 - béton : bloc rectangulaire de hauteur a = 0,8.x sur un segment circulaire ;
-- pivot B (eps_cu2 = 3,5 ‰) si x <= D, pivot C au-delà ;
+- pivot A (eps_ud = 10 ‰ sur la barre la plus tendue) si x <= x_AB,
+  pivot B (eps_cu2 = 3,5 ‰) si x_AB < x <= D, pivot C au-delà ;
+- cas 2 : x <= 0 (entièrement tendue) ; cas 1 : 0 < x < D ; cas 3 : x >= D.
 - acier élasto-plastique à palier horizontal.
 Unités d'entrée : m, kN, kN.m (comme le poteau rectangulaire).
 """
@@ -29,6 +31,7 @@ from flexcomp.results.dataclasses import (
 
 EPS_CU2 = 3.5e-3
 EPS_C2 = 2.0e-3
+EPS_UD = 10.0e-3       # allongement limite de l'acier (pivot A)
 E_CM = 30000.0          # MPa, comme le poteau rectangulaire
 
 
@@ -148,15 +151,28 @@ class PoteauCirculaire:
         A = D**2 / 8 * (2 * al - math.sin(2 * al))
         return A, D**3 * math.sin(al) ** 3 / (12 * A)
 
+    @property
+    def d_max(self) -> float:
+        """Profondeur de la barre la plus tendue (mm)."""
+        return self.D / 2 + self.rs
+
+    @property
+    def x_AB(self) -> float:
+        """Frontière pivot A / pivot B (mm)."""
+        return self.d_max * EPS_CU2 / (EPS_CU2 + EPS_UD)
+
     def _deformation(self, x: float, z: float) -> float:
-        """Raccourcissement (+) à la profondeur z ; pivot B si x <= D, C sinon."""
+        """Raccourcissement (+) à la profondeur z ; pivot A, B ou C selon x."""
+        if x <= self.x_AB:
+            return EPS_UD * (x - z) / (self.d_max - x)
         if x <= self.D:
             return EPS_CU2 * (x - z) / x
         return EPS_C2 * (x - z) / (x - 3 * self.D / 7)
 
-    def resistance(self, x: float, As: float) -> tuple[float, float]:
-        """(N_Rd, M_Rd) en N et N.mm pour un axe neutre x (mm) et une section totale As (mm²)."""
-        A, yc = self._segment(0.8 * x)
+    def resistance(self, x: float, As: float, beton: bool = True) -> tuple[float, float]:
+        """(N_Rd, M_Rd) en N et N.mm pour un axe neutre x (mm) et une section totale As (mm²).
+        beton=False : béton négligé (cas 2, section entièrement tendue)."""
+        A, yc = self._segment(0.8 * x) if beton else (0.0, 0.0)
         Fc = A * self.beton.fcd
         N, M = Fc, Fc * yc
         ab = As / self.nombre_barres
@@ -167,8 +183,8 @@ class PoteauCirculaire:
         return N, M
 
     def axe_neutre(self, As: float, N_Ed: float) -> float:
-        """x (mm) tel que N_Rd = N_Ed (N_Rd croît avec x)."""
-        lo, hi = 1e-3, 3 * self.D
+        """x (mm) tel que N_Rd = N_Ed (N_Rd croît avec x). x <= 0 : section entièrement tendue."""
+        lo, hi = -50 * self.D, 3 * self.D
         for _ in range(100):
             m = (lo + hi) / 2
             if self.resistance(m, As)[0] < N_Ed:
@@ -176,6 +192,41 @@ class PoteauCirculaire:
             else:
                 hi = m
         return (lo + hi) / 2
+
+    @property
+    def e_lim_traction(self) -> float:
+        """Excentricité limite (mm) de la section entièrement tendue : M/N des aciers seuls
+        à x = 0 (barre la plus tendue à 10 ‰, fibre supérieure à 0). Indépendante de As."""
+        N0, M0 = self.resistance(0.0, 1.0, beton=False)
+        return abs(M0 / N0)
+
+    def _x_tendu(self, As: float, N: float) -> float:
+        """x <= 0 tel que N_Rd des aciers seuls = N (N en N)."""
+        lo, hi = -50 * self.D, 0.0
+        for _ in range(100):
+            m = (lo + hi) / 2
+            if self.resistance(m, As, beton=False)[0] < N:
+                lo = m
+            else:
+                hi = m
+        return (lo + hi) / 2
+
+    def _cas2_aciers_seuls(self, N_kN: float, M_star: float) -> tuple[float, float] | None:
+        """Cas 2 : béton négligé, toutes les barres tendues (x <= 0, pivot A).
+        Renvoie (As, x) ou None si le moment ne peut pas être repris sans zone comprimée."""
+        N = N_kN * 1e3
+        M_de = lambda As: self.resistance(self._x_tendu(As, N), As, beton=False)[1] / 1e6
+        lo = abs(N) / self.fyd * 1.0001
+        hi = abs(N) / -self.resistance(0.0, 1.0, beton=False)[0]
+        if M_de(hi) < M_star:
+            return None
+        for _ in range(80):
+            m = (lo + hi) / 2
+            if M_de(m) < M_star:
+                lo = m
+            else:
+                hi = m
+        return hi, self._x_tendu(hi, N)
 
     def moment_resistant(self, As: float, N_kN: float) -> tuple[float, float]:
         """(x en mm, M_Rd en kN.m) de la section As (mm²) sous N (kN)."""
@@ -198,8 +249,17 @@ class PoteauCirculaire:
             M_star = effets.moment_calcul
             As_lo = 0.0
 
+        cas2 = None
+        if s.N < 0 and abs(s.M / s.N) * 1000 <= self.e_lim_traction:
+            cas2 = self._cas2_aciers_seuls(s.N, M_star)
+            if cas2 is not None:
+                notes.append(f"e0 = {abs(s.M / s.N) * 1000:.1f} mm <= e_lim = {self.e_lim_traction:.1f} mm : "
+                             "béton négligé, toutes les barres tendues (pivot A).")
+
         x0, M0 = self.moment_resistant(As_lo, s.N) if s.N >= 0 else (0.0, 0.0)
-        if s.N >= 0 and M0 >= M_star:
+        if cas2 is not None:
+            As = cas2[0]
+        elif s.N >= 0 and M0 >= M_star:
             As = 0.0
             notes.append("Le béton seul équilibre les sollicitations : les armatures minimales gouvernent.")
         else:
@@ -211,10 +271,8 @@ class PoteauCirculaire:
                 else:
                     hi = m
             As = (lo + hi) / 2
-        x = self.axe_neutre(As, s.N * 1e3)
-        cas = CasSection.ENTIEREMENT_COMPRIMEE if x >= self.D else CasSection.PARTIELLEMENT_COMPRIMEE
-        if s.N < 0 and x <= 1e-2:
-            cas = CasSection.ENTIEREMENT_TENDUE
+        x = cas2[1] if cas2 is not None else self.axe_neutre(As, s.N * 1e3)
+        cas = self.cas_section(x)
 
         as_min = as_min_poteau(abs(s.N), self.aire_beton, self.acier)
         armatures = ArmaturesSection(
@@ -226,11 +284,23 @@ class PoteauCirculaire:
             M_Rd_beton=M0, armatures=armatures, notes=tuple(notes),
         )
 
+    def cas_section(self, x: float) -> CasSection:
+        """Cas 2 : x <= 0 ; cas 3 : x >= D ; cas 1 sinon."""
+        if x <= 0:
+            return CasSection.ENTIEREMENT_TENDUE
+        if x >= self.D:
+            return CasSection.ENTIEREMENT_COMPRIMEE
+        return CasSection.PARTIELLEMENT_COMPRIMEE
+
     def verifier_resistance(self, s: Sollicitation, As_choisie: float,
                             resultat: ResultatPoteauCirculaire) -> tuple[float, float, bool]:
         """(x, M_Rd, vérifié) avec la section réellement choisie (mm²)."""
         M_star = abs(s.M) if resultat.effets_2nd_ordre is None else resultat.effets_2nd_ordre.moment_calcul
         x, M_Rd = self.moment_resistant(As_choisie, s.N)
+        if resultat.cas is CasSection.ENTIEREMENT_TENDUE:
+            xt = self._x_tendu(As_choisie, s.N * 1e3)
+            if self.resistance(xt, As_choisie, beton=False)[0] >= s.N * 1e3 - 1:   # aciers seuls suffisent
+                x, M_Rd = xt, self.resistance(xt, As_choisie, beton=False)[1] / 1e6
         return x, M_Rd, M_Rd >= M_star - 1e-6
 
     # ------------------------------------------------------------------
@@ -248,6 +318,11 @@ class PoteauCirculaire:
             s_c = N / A_hom + M * (self.D / 2) / I_hom
             s_s = max(abs(n_mod * (N / A_hom + M * y / I_hom)) for y in ys)
             return VerificationELS(s_c, self.beton.sigma_c_lim_els, s_s, lim_s)
+        # Aciers seuls : si toutes les barres sont tendues, la section est entièrement tendue
+        I_s = sum(ab * y * y for y in ys)
+        sig = [N / As_choisie + M * y / I_s for y in ys]
+        if max(sig) <= 0:
+            return VerificationELS(0.0, self.beton.sigma_c_lim_els, max(abs(v) for v in sig), lim_s)
         x, s_top = self._els_fissure(N, M, As_choisie, n_mod)
         s_s = max(abs(n_mod * s_top * (x - (self.D / 2 - y)) / x) for y in ys)
         return VerificationELS(s_top, self.beton.sigma_c_lim_els, s_s, lim_s)

@@ -69,7 +69,7 @@ class CoupePoteauCirculaire(CanevasTechnique):
         # Axe de symétrie et axe neutre à l'ELU
         ligne_axe(peintre, QPointF(c.x() - R - 15, c.y()), QPointF(c.x() + R + 15, c.y()))
         x = self.resultat.x
-        if 0 < x < D:
+        if 0 < x < D:        # axe neutre dans la section (cas 1)
             yn = c.y() - (D / 2 - x) * s
             peintre.setPen(stylo(COULEUR_TRAIT, TRAIT_FIN, Qt.PenStyle.DashLine))
             largeur_txt = _ecrire(peintre, QPointF(c.x() - R - 8, yn - 12), "axe neutre (ELU)", "droite")
@@ -88,7 +88,9 @@ class CoupePoteauCirculaire(CanevasTechnique):
         cote_horizontale(peintre, QPointF(c.x() - R, c.y()), QPointF(c.x() + R, c.y()),
                          c.y() + R + 32, f"D = {D / 10:.0f} cm")
         As = section_barres(n, phi)
-        lignes = [f"x = {x / 10:.1f} cm   ·   r_s = {p.rs / 10:.1f} cm",
+        etat = ("Cas 2 : entièrement tendue" if x <= 0 else "Cas 3 : entièrement comprimée"
+                if x >= p.D else "Cas 1 : partiellement comprimée")
+        lignes = [f"{etat}   ·   x = {x / 10:.1f} cm   ·   rₛ = {p.rs / 10:.1f} cm",
                   f"{n} HA {phi} = {As:.0f} mm²"]
         for rang, ligne in enumerate(reversed(lignes)):
             _ecrire(peintre, QPointF(zone.center().x(), zone.bottom() - 10 - 24 * rang), ligne, "centre")
