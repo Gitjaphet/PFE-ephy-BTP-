@@ -40,7 +40,7 @@ ELEMENTS = [
     },
     {
         "id": "mur",
-        "titre": "Mur porteur (voile)",
+        "titre": "Voile",
         "description": "Vérifications du béton non armé, flexion composée dans le plan",
         "pictogramme": visuels.pictogramme_mur,
     },

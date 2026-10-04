@@ -101,7 +101,7 @@ def rapport_voute(resultat: ResultatVoute) -> None:
 
 
 def rapport_mur_porteur(resultat: ResultatMurPorteur) -> None:
-    _imprimer_titre("MUR PORTEUR — Vérifications EC2 §12.6")
+    _imprimer_titre("VOILE — Vérifications EC2 §12.6")
     _imprimer_lignes([
         ("Vérif. 1 — forces axiales", f"N_Rd1 = {resultat.verif_forces_axiales.N_Rd1:.0f} kN "
                                         f"({'OK' if resultat.verif_forces_axiales.verifie else 'KO'})"),
@@ -110,7 +110,7 @@ def rapport_mur_porteur(resultat: ResultatMurPorteur) -> None:
                                           f"({'OK' if resultat.verif_effort_tranchant.verifie else 'KO'})"),
         ("Vérif. 3 — flambement", f"N_Rd12 = {resultat.verif_flambement.N_Rd12:.0f} kN "
                                     f"({'OK' if resultat.verif_flambement.verifie else 'KO'})"),
-        ("Conclusion", "NON ARMÉ possible" if resultat.calculable_non_arme else "Mur À ARMER"),
+        ("Conclusion", "NON ARMÉ possible" if resultat.calculable_non_arme else "Voile À ARMER"),
     ])
     for note in resultat.notes:
         print(f"  · {note}")

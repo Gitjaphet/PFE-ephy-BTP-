@@ -88,7 +88,7 @@ def pictogramme_voute(largeur: int = 132, hauteur: int = 96) -> QPixmap:
 
 
 def pictogramme_mur(largeur: int = 132, hauteur: int = 96) -> QPixmap:
-    """Élévation d'un mur porteur : console verticale encastrée en pied,
+    """Élévation d'un voile : console verticale encastrée en pied,
     effort normal et effort tranchant dans le plan."""
     t, n, m = PALETTE.texte_secondaire, PALETTE.effort_normal, PALETTE.moment
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 132 96">

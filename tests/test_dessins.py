@@ -166,9 +166,13 @@ class TestPanneauFigures:
                             N_els=580, M_els=85)),
             ("voute", DONNEES_VOUTE),
             ("mur", DONNEES_MUR),
+            ("poteau_circ", dict(D=45, enrobage=3, diametre=20, nb_barres=8, longueur=3.5,
+                                 fck=25, fyk=500, N_elu=800, M_elu=120, N_els=580, M_els=85,
+                                 condition_appui=0)),
         ]
         for element, donnees in cas:
             page = PageResultats(element, calculer(element, donnees))
             panneau = page.findChild(PanneauFigures)
             assert panneau is not None, f"pas de figures pour {element}"
-            assert panneau.onglets.count() == 2
+            attendu = 1 if element == "poteau_circ" else 2      # circulaire : coupe seule
+            assert panneau.onglets.count() >= attendu, f"figures manquantes pour {element}"

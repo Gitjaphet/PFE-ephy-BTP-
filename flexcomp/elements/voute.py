@@ -5,9 +5,9 @@ Suit le rapport PFA (Partie 1 Chapitre 3, Partie 2 Chapitre 2) :
     2. vérification M = 0 aux trois rotules
     3. recherche de la section courante la plus sollicitée (balayage de x)
     4. effets du second ordre / excentricités additionnelles (comme un poteau)
-    5. vérification EC2 §12.6 (comme un mur non armé)
+    5. vérification EC2 §12.6 (comme un voile non armé)
     6. dimensionnement des armatures à la section critique (flexion simple
-       assimilée, identique au poteau/mur porteur)
+       assimilée, identique au poteau/voile)
 """
 
 from __future__ import annotations

@@ -161,7 +161,7 @@ class TestAdaptateurUnites:
         assert resultat.cas is CasSection.PARTIELLEMENT_COMPRIMEE
         assert resultat.armatures.As1 == pytest.approx(345.1, abs=0.5)
         assert resultat.armatures.As2 == pytest.approx(142.0, abs=0.5)
-        assert sortie["verification_els"] is not None
+        assert sortie["sollicitation_els"] is not None   # ELS calculé après le choix des barres
 
     def test_els_ignore_si_champs_vides(self):
         sortie = calculer("poteau", {
@@ -169,7 +169,7 @@ class TestAdaptateurUnites:
             "fck": 25, "fyk": 500, "N_elu": 800, "M_elu": 120,
             "N_els": None, "M_els": None, "condition_appui": 0,
         })
-        assert sortie["verification_els"] is None
+        assert sortie["sollicitation_els"] is None
 
     def test_resultat_voute_conforme_au_rapport(self):
         sortie = calculer("voute", {
@@ -209,7 +209,7 @@ class TestPagesResultats:
                   "V_elu": 171, "excentricite": 0, "beta": 0}),
     ])
     def test_page_resultats_se_construit(self, fenetre, element, donnees):
-        """Les trois cas du poteau + voûte + mur doivent tous s'afficher sans
+        """Les trois cas du poteau + voûte + voile doivent tous s'afficher sans
         exception : c'est la garantie que l'affichage conditionnel couvre
         bien toutes les branches du moteur."""
         fenetre._ouvrir_saisie(element)

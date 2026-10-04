@@ -23,8 +23,9 @@ Développé dans le cadre du **Projet de Fin d'Année (PFA – S8)**, Master I G
 
 ## Fonctionnalités
 
-- **Trois éléments de structure** : poteau rectangulaire, voûte à trois articulations, mur porteur (voile).
+- **Quatre éléments de structure** : poteau rectangulaire, poteau circulaire, voûte à trois articulations, voile.
 - **Interface graphique** en trois étapes : choix de l'élément → données d'entrée → résultats.
+- **Version console** : le même calcul, étape par étape, dans le terminal (`python run_console.py`).
 - **Calcul ELU** complet, avec identification automatique du cas de section (partiellement comprimée, entièrement tendue, entièrement comprimée).
 - **Effets du second ordre** (méthode de la courbure nominale) et imperfections géométriques.
 - **Choix des armatures par l'utilisateur**, saisi au format `4HA12`, avec la section réelle affichée en direct et le contrôle As,min / As,max.
@@ -53,6 +54,18 @@ Développé dans le cadre du **Projet de Fin d'Année (PFA – S8)**, Master I G
 | ELS | Section homogénéisée : σc ≤ 0,6·fck et σs ≤ 0,8·fyk |
 | Cadres | EC2 §9.5.3 : Φt, espacement courant et espacement réduit aux extrémités |
 
+### Poteau circulaire
+
+| Étape | Contenu |
+|---|---|
+| Section | d' = c + Φ/2 ; rₛ = D/2 − d' (cercle des armatures) ; A_c = π·D²/4 ; i = D/4 |
+| Élancement | l₀ selon les conditions aux appuis, λ = l₀/i, λlim = 20·A·B·C/√n |
+| Second ordre | Courbure nominale avec d = D/2 + rₛ/√2 (EC2 §5.8.8.3) ; e_tot = e₁ + eᵢ + e₂ |
+| Équilibre de la section | Béton : segment circulaire de profondeur 0,8·x ; n barres réparties (n ≥ 6), y_k = rₛ·cos(2πk/n) ; pivot B ou C |
+| Armatures | x tel que N_Rd = N_Ed, puis A_s total tel que M_Rd ≥ M*_Ed |
+| Vérification | Résistance recalculée avec les barres choisies : M_Rd ≥ M*_Ed |
+| ELS | Section homogénéisée (N_ser > 0) ou fissurée (N_ser < 0) : σc et σs |
+
 ### Voûte à trois articulations
 
 - Poussée horizontale H = p·l²/(8f) et rayon de l'arc (Mesnager).
@@ -62,7 +75,7 @@ Développé dans le cadre du **Projet de Fin d'Année (PFA – S8)**, Master I G
 - Armatures en flexion composée à la section critique, par bande de calcul.
 - ELS à la section critique.
 
-### Mur porteur (voile)
+### Voile
 
 - Les trois vérifications du béton non armé (EC2 §12.6) : forces axiales, effort tranchant, flambement, avec λ ≤ 86.
 - Conclusion : voile calculable comme non armé, ou à armer.
@@ -111,6 +124,12 @@ L'application peut aussi être lancée comme module :
 python -m flexcomp.gui
 ```
 
+Version console (demandée pour la présentation) :
+
+```bash
+python run_console.py
+```
+
 ---
 
 ## Structure du projet
@@ -118,6 +137,7 @@ python -m flexcomp.gui
 ```
 flexcomp_project/
 ├── run_gui.py                  # Point d'entrée de l'interface graphique
+├── run_console.py              # Point d'entrée de la version console
 ├── pyproject.toml
 ├── examples/                   # Exemples de calcul
 ├── tests/                      # Tests
@@ -133,7 +153,8 @@ flexcomp_project/
     ├── sections/
     │   └── rectangular.py      # Section rectangulaire (d, d', aire)
     ├── elements/
-    │   ├── poteau.py           # Poteau : 3 cas de flexion composée + ELS
+    │   ├── poteau.py           # Poteau rectangulaire : 3 cas de flexion composée + ELS
+    │   ├── poteau_circulaire.py  # Poteau circulaire : équilibre de la section + ELS
     │   ├── voute.py            # Voûte à trois articulations (Mesnager) + ELS
     │   └── mur_porteur.py      # Voile : EC2 §12.6 + flexion composée dans le plan
     ├── results/
@@ -191,6 +212,15 @@ Les résultats sont comparés au calcul manuel de la Partie 2 du rapport. Pour l
 | μEd,A | 0,402 | 0,402 |
 | As1 / As2 | 345,1 / 142,0 mm² | 345,1 / 142,0 mm² |
 | σc (4HA12 + 4HA8) | 14,81 MPa | 14,81 MPa |
+
+Poteau circulaire D = 45 cm, mêmes sollicitations (NEd = 800 kN, MEd = 120 kN·m) :
+
+| Grandeur | Valeur |
+|---|---|
+| M*Ed | 132,75 kN·m |
+| A_s total calculé | 502,3 mm² |
+| Barres choisies | 8HA10 → M_Rd = 138,93 kN·m ≥ 132,75 |
+| ELS (Nser = 580 kN, Mser = 85 kN·m) | σc = 12,79 MPa ; σs = 74,33 MPa |
 
 ---
 

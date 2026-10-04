@@ -9,7 +9,7 @@ Architecture :
     flexcomp.core        -> matériaux, constantes EC2, exceptions, unités
     flexcomp.sections     -> géométrie des sections (rectangulaire, etc.)
     flexcomp.elements     -> modèles de calcul par type d'élément
-                             (poteau, voûte, mur porteur)
+                             (poteau, voûte, voile)
     flexcomp.results      -> structures de données immuables pour les résultats
     flexcomp.reporting     -> mise en forme des résultats (console, futur PDF/HTML)
 

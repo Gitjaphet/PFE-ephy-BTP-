@@ -1,7 +1,7 @@
 """Dimensionnement par assimilation à la flexion simple (EC2, méthode consacrée).
 
 Cette méthode est le cœur commun aux trois éléments du projet (poteau, voûte,
-mur porteur) : le rapport PFA le souligne explicitement (§1.7, §3.3, §4.2).
+voile) : le rapport PFA le souligne explicitement (§1.7, §3.3, §4.2).
 Elle est donc factorisée ici une seule fois, et chaque `elements.*` l'appelle
 avec sa propre géométrie/sollicitation plutôt que de la ré-implémenter.
 

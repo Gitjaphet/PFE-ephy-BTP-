@@ -135,7 +135,7 @@ class ResultatVoute:
 
 @dataclass(frozen=True)
 class VerificationForcesAxiales:
-    """EC2 §12.6.1 — résistance aux forces axiales d'un mur/voûte non armé."""
+    """EC2 §12.6.1 — résistance aux forces axiales d'un voile/voûte non armé."""
 
     N_Ed: float
     N_Rd1: float
@@ -147,7 +147,7 @@ class VerificationForcesAxiales:
 
 @dataclass(frozen=True)
 class VerificationEffortTranchant:
-    """EC2 §12.6.3 — résistance à l'effort tranchant d'un mur non armé."""
+    """EC2 §12.6.3 — résistance à l'effort tranchant d'un voile non armé."""
 
     tau_cp: float
     f_cvd: float
@@ -159,7 +159,7 @@ class VerificationEffortTranchant:
 
 @dataclass(frozen=True)
 class VerificationFlambementVoile:
-    """EC2 §12.6.5 — résistance au flambement d'un mur/voûte non armé."""
+    """EC2 §12.6.5 — résistance au flambement d'un voile/voûte non armé."""
 
     lambda_calcule: float
     lambda_limite: float
@@ -178,7 +178,7 @@ class VerificationFlambementVoile:
 
 @dataclass(frozen=True)
 class ResultatMurPorteur:
-    """Résultat complet de la vérification / du dimensionnement d'un mur porteur."""
+    """Résultat complet de la vérification / du dimensionnement d'un voile."""
 
     verif_forces_axiales: VerificationForcesAxiales
     verif_effort_tranchant: VerificationEffortTranchant

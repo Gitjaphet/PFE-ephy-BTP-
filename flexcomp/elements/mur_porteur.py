@@ -1,10 +1,10 @@
-"""Mur porteur (voile) en béton armé, EC2 §12.6 et §9.6.
+"""Voile en béton armé, EC2 §12.6 et §9.6.
 
 Suit le rapport PFA (Partie 1 Chapitre 4, Partie 2 Chapitre 3) :
     1. longueur efficace l0 = beta.lw, élancement lambda
-    2. trois vérifications du mur non armé : forces axiales (§12.6.1),
+    2. trois vérifications du voile non armé : forces axiales (§12.6.1),
        effort tranchant (§12.6.3), flambement (§12.6.5)
-    3. si les trois vérifications passent et lambda <= 86 : mur non armé
+    3. si les trois vérifications passent et lambda <= 86 : voile non armé
        possible (armatures minimales nulles, ferraillage de peau seulement)
     4. sinon : dimensionnement classique en flexion composée, identique au
        poteau (flexion dans le plan du voile, bcalc=hw, hcalc=b)
@@ -31,7 +31,7 @@ from flexcomp.results.dataclasses import (
 
 @dataclass(frozen=True)
 class MurPorteur:
-    """Mur porteur (voile) en béton armé, console verticale encastrée en pied.
+    """Voile en béton armé, console verticale encastrée en pied.
 
     Attributes:
         hauteur_libre: hauteur libre du voile lw (m).
@@ -149,12 +149,12 @@ class MurPorteur:
         if calculable_non_arme:
             notes.append(
                 "Les 3 vérifications et λ ≤ 86 sont satisfaites : "
-                "mur calculable comme non armé (ferraillage de peau + épingles seulement)."
+                "voile calculable comme non armé (ferraillage de peau + épingles seulement)."
             )
         else:
             notes.append(
                 "Au moins une vérification n'est pas satisfaite, ou λ > 86 : "
-                "le mur doit être calculé comme armé (méthode du poteau)."
+                "le voile doit être calculé comme armé (méthode du poteau)."
             )
 
         return ResultatMurPorteur(

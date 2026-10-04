@@ -2,7 +2,7 @@
 
 Ce module ne connaît ni le béton armé ni l'Eurocode : il fournit le
 vocabulaire graphique d'un plan d'exécution. Les modules de dessin des
-éléments (`poteau.py`, `voute.py`, `mur.py`) l'utilisent pour composer
+éléments (`poteau.py`, `voute.py`, `voile.py`) l'utilisent pour composer
 leurs figures.
 
 Deux choix structurants :

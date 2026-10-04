@@ -1,4 +1,4 @@
-"""Figures du mur porteur (voile), style plan type AutoCAD.
+"""Figures du voile, style plan type AutoCAD.
 
 - Élévation dans le plan : encastrement en pied, chaînages d'about en trait
   interrompu, N et V en tête, cotes b et lw.

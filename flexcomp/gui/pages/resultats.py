@@ -322,7 +322,7 @@ class PageResultats(QWidget):
 
     def _proposition(self, requis: float) -> tuple[int, int]:
         """Proposition initiale. Poteau : 4 barres du plus petit Φ suffisant.
-        Voûte / mur : plus petit Φ (>= 8 mm) demandant au plus 6 barres."""
+        Voûte / voile : plus petit Φ (>= 8 mm) demandant au plus 6 barres."""
         if self.identifiant == "poteau_circ":
             nb = self.sortie["modele"].nombre_barres
             for d in DIAMETRES_HA:
@@ -684,9 +684,9 @@ class PageResultats(QWidget):
 
         etat = "succes" if resultat.calculable_non_arme else "alerte"
         texte = (
-            "Mur calculable comme NON ARMÉ"
+            "Voile calculable comme NON ARMÉ"
             if resultat.calculable_non_arme
-            else "Le mur DOIT être armé"
+            else "Le voile DOIT être armé"
         )
         cadre_c, disposition_c = carte()
         ligne = QHBoxLayout()

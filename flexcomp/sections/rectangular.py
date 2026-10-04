@@ -1,4 +1,4 @@
-"""Section rectangulaire en béton armé (poteau, mur porteur, voûte).
+"""Section rectangulaire en béton armé (poteau, voile, voûte).
 
 Encapsule la géométrie brute (b, h, enrobage, diamètre de barre) et calcule
 une fois pour toutes les grandeurs dérivées (d, d', Ac, rayon de giration)

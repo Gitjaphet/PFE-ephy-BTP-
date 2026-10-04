@@ -17,7 +17,7 @@ class DonneesInvalidesError(FlexcompError):
 
 class ElancementExcessifError(FlexcompError):
     """Levée quand l'élancement dépasse un domaine de validité de la méthode
-    simplifiée (ex : lambda > 86 pour un mur non armé, EC2 §12.6.5)."""
+    simplifiée (ex : lambda > 86 pour un voile non armé, EC2 §12.6.5)."""
 
 
 class ConvergenceError(FlexcompError):

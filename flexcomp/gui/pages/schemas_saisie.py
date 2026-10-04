@@ -142,7 +142,7 @@ SCHEMAS: dict[str, SchemaFormulaire] = {
         ),
     ),
     "mur": SchemaFormulaire(
-        titre="Mur porteur (voile)",
+        titre="Voile",
         description="Console verticale encastrée en pied, vérifications du béton non armé",
         groupes=(
             GroupeChamps(

@@ -1,5 +1,5 @@
 """Programme console de flexcomp : saisie au clavier et calcul déroulé étape par
-étape (poteau, voûte, mur), avec le même moteur de calcul que l'interface.
+étape (poteau, voûte, voile), avec le même moteur de calcul que l'interface.
 
 Lancement : python run_console.py
 """
@@ -200,7 +200,7 @@ def voute() -> None:
 # Mur porteur
 # ----------------------------------------------------------------------
 def mur() -> None:
-    titre("MUR PORTEUR (VOILE) — EC2 §12.6 ET FLEXION COMPOSÉE")
+    titre("VOILE — EC2 §12.6 ET FLEXION COMPOSÉE")
     etape("1. Données (Entrée = valeur du rapport)")
     d = dict(
         hauteur=lire("Hauteur libre lw (m)", 4), longueur=lire("Longueur de calcul b (m)", 2.5),
@@ -221,8 +221,8 @@ def mur() -> None:
     print(f"   1 — Forces axiales   : NEd = {f1.N_Ed:.1f} kN <= NRd1 = {f1.N_Rd1:.1f} kN  -> {verdict(f1.verifie)}")
     print(f"   2 — Effort tranchant : τcp = {f2.tau_cp:.3f} MPa <= fcvd = {f2.f_cvd:.3f} MPa  -> {verdict(f2.verifie)}")
     print(f"   3 — Flambement       : NEd = {f3.N_Ed:.1f} kN <= NRd,12 = {f3.N_Rd12:.1f} kN  -> {verdict(f3.verifie)}")
-    print("   Conclusion : " + ("mur calculable comme NON ARMÉ" if r.calculable_non_arme
-                               else "le mur DOIT être armé"))
+    print("   Conclusion : " + ("voile calculable comme NON ARMÉ" if r.calculable_non_arme
+                               else "le voile DOIT être armé"))
 
     if a is not None:
         etape("4. Flexion composée dans le plan : aciers d'about")
@@ -329,7 +329,7 @@ def main() -> None:
     while True:
         titre("flexcomp — Calcul des éléments en flexion composée (EC2)")
         print("   1. Poteau rectangulaire\n   2. Voûte à trois articulations\n"
-              "   3. Mur porteur (voile)\n   4. Poteau circulaire\n   0. Quitter")
+              "   3. Voile\n   4. Poteau circulaire\n   0. Quitter")
         choix = input("   Votre choix : ").strip()
         if choix == "0":
             print("Au revoir.")
