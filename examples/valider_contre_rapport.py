@@ -85,7 +85,7 @@ rapport_voute(resultat_voute)
 
 
 print("\n" + "#" * 70)
-print("# 3. MUR PORTEUR (rapport PFA, Partie 2, Chapitre 3)")
+print("# 3. VOILE (rapport PFA, Partie 2, Chapitre 3)")
 print("#" * 70)
 
 mur = MurPorteur(
